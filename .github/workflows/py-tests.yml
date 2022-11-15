@@ -22,43 +22,44 @@ jobs:
     strategy:
       matrix:
         py-version: ['3.7']
+        node-version: ['19']
+        java: ['11']
     steps:
-
     - name: Checkout
       uses: actions/checkout@v2
       with:
         ref: main
+        token: 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
         fetch-depth: 0
 
-    - name: Set up JDK 11
-      uses: actions/setup-java@v2
-      with:
-        java-version: '11'
-        distribution: 'adopt'
-
-    - name: Set up Python ${{ matrix.py-version }}
+    - name: Install Ubuntu dependencies
       uses: actions/setup-python@v2
       with:
         python-version:  ${{ matrix.py-version }}
-
-    - name: Install Ubuntu dependencies
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        cache: 'maven'
+        java-version: ${{ matrix.java }}
+      uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
       run: |
         sudo apt-get update && sudo apt-get install -y unixodbc-dev python3-venv librdkafka-dev gcc libsasl2-dev build-essential libssl-dev libffi-dev \
         unixodbc-dev libevent-dev python3-dev git openjdk-11-jdk ca-certificates-java
-        wget https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
-        tar zxvf apache-maven-3.8.6-bin.tar.gz
-        mv apache-maven-3.8.6 /opt/
-        M2_HOME='/opt/apache-maven-3.8.6'
-        PATH="$M2_HOME/bin:$PATH"
-        export PATH
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-        mvn clean package
+        echo "Hello"
+        mvn --version
+        java --version
+        python --version
+        node --version
+        echo "Hello END"
+        mvn clean install
+    - name: Start Daemon Server
+      run: |
         cd openmetadata-dist/target
         tar zxvf openmetadata*.tar.gz
         cd openmetadata*/
         ./bin/openmetadata.sh start
-        
-
     - name: Generate models
       run: |
         python3 -m venv env
@@ -66,55 +67,3 @@ jobs:
         sudo make install_antlr_cli
         make install_dev generate install_all install_test
         make run_python_tests
-
-    # - name: Install open-metadata dependencies
-    #   run: |
-    #     source env/bin/activate
-    #     make install_all install_test
-
-    # - name: Start Server and Ingest Sample Data
-    #   env:
-    #     INGESTION_DEPENDENCY: "mysql,elasticsearch"
-    #   run: 
-    #   timeout-minutes: 30
-
-    # - name: Run Python Tests
-    #   if: ${{ matrix.py-version != '3.9' }}
-    #   run: |
-    #     source env/bin/activate
-    #     make run_python_tests
-
-    # - name: Run Python Tests & record coverage
-    #   if: ${{ matrix.py-version == '3.9' }}
-    #   run: |
-    #     source env/bin/activate
-    #     make coverage
-    #     rm pom.xml
-    #     # fix coverage xml report for github
-    #     sed -i 's/src\/metadata/\/github\/workspace\/ingestion\/src\/metadata/g' ingestion/ci-coverage.xml
-
-    #   # we have to pass these args values since we are working with the 'pull_request_target' trigger
-    # - name: Push Results in PR to Sonar
-    #   uses: sonarsource/sonarcloud-github-action@master
-    #   if: ${{ github.event_name == 'pull_request_target' && matrix.py-version == '3.9' }}
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #     SONAR_TOKEN: ${{ secrets.INGESTION_SONAR_SECRET }}
-    #   with:
-    #     projectBaseDir: ingestion/
-    #     args: >
-    #       -Dproject.settings=ingestion/sonar-project.properties
-    #       -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-    #       -Dsonar.pullrequest.branch=${{ github.head_ref }}
-    #       -Dsonar.pullrequest.github.repository=OpenMetadata
-    #       -Dsonar.scm.revision=${{ github.event.pull_request.head.sha }}
-    #       -Dsonar.pullrequest.provider=github
-
-    # - name: Push Results to Sonar
-    #   uses: sonarsource/sonarcloud-github-action@master
-    #   if: ${{ github.event_name == 'push' &&  matrix.py-version == '3.9' }}
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #     SONAR_TOKEN: ${{ secrets.INGESTION_SONAR_SECRET }}
-    #   with:
-    #     projectBaseDir: ingestion/

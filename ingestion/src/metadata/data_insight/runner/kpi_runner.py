@@ -14,8 +14,8 @@ Runner class used to check KPI status
 
 from __future__ import annotations
 
-import time as tme
 from datetime import datetime
+from time import time
 from typing import Iterator, Optional
 
 from metadata.data_insight.runner.run_result_registry import run_result_registry
@@ -78,15 +78,15 @@ class KpiRunner:
             )
             return None
 
-        timeout = tme.time() + TIMEOUT
-        while True:
+        timeout = time() + TIMEOUT
+        while 1:
             results = self.metadata.get_aggregated_data_insight_results(
                 start_ts=get_beginning_of_day_timestamp_mill(),
                 end_ts=get_end_of_day_timestamp_mill(),
                 data_insight_chart_nane=data_insight_chart_entity.name.__root__,
                 data_report_index=data_insight_chart_entity.dataIndexType.value,
             )
-            if results.data or tme.time() > timeout:
+            if results.data or time() > timeout:
                 break
 
         return results

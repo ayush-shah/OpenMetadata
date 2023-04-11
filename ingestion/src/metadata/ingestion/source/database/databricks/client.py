@@ -96,7 +96,7 @@ class DatabricksClient:
                     result = response.get("res") or []
                     data = {}
 
-                while True:
+                while 1:
                     if result:
                         query_details.extend(result)
 

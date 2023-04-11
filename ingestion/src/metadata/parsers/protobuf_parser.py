@@ -22,7 +22,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 
-import grpc_tools.protoc
+from grpc_tools.protoc import main
 from pydantic import BaseModel
 
 from metadata.generated.schema.type.schema import FieldModel
@@ -134,7 +134,7 @@ class ProtobufParser:
         """
         try:
             # compile the .proto file and create python class
-            grpc_tools.protoc.main(
+            main(
                 [
                     "protoc",
                     file_path,

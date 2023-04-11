@@ -19,8 +19,6 @@ import traceback
 import zipfile
 from typing import Any
 
-import pandas as pd
-
 from metadata.ingestion.source.database.datalake.utils import (
     read_from_avro,
     read_from_json,
@@ -51,11 +49,13 @@ def read_csv_from_azure(
     """
     Read the csv file from the azure container and return a dataframe
     """
+    from pandas import read_csv  # pylint: disable=import-outside-toplevel
+
     try:
         account_url = (
             f"abfs://{container_name}@{client.account_name}.dfs.core.windows.net/{key}"
         )
-        dataframe = pd.read_csv(account_url, storage_options=storage_options, sep=sep)
+        dataframe = read_csv(account_url, storage_options=storage_options, sep=sep)
         return dataframe
     except Exception as exc:
         logger.debug(traceback.format_exc())
@@ -77,11 +77,13 @@ def read_parquet_from_azure(
     """
     Read the parquet file from the container and return a dataframe
     """
+    from pandas import read_parquet  # pylint: disable=import-outside-toplevel
+
     try:
         account_url = (
             f"abfs://{container_name}@{client.account_name}.dfs.core.windows.net/{key}"
         )
-        dataframe = pd.read_parquet(account_url, storage_options=storage_options)
+        dataframe = read_parquet(account_url, storage_options=storage_options)
         return dataframe
     except Exception as exc:
         logger.debug(traceback.format_exc())

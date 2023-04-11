@@ -61,16 +61,16 @@ class FirstQuartile(StaticMetric):
     def df_fn(self, dfs=None):
         """Dataframe function"""
         # pylint: disable=import-outside-toplevel
-        import pandas as pd
+        from pandas import DataFrame, concat, isnull
 
-        df = cast(List[pd.DataFrame], dfs)
+        df = cast(List[DataFrame], dfs)
 
         if is_quantifiable(self.col.type):
             # we can't compute the first quartile unless we have
             # the entire set. Median of Medians could be used
             # though it would required set to be sorted before hand
             try:
-                df = pd.concat(dfs)
+                df = concat(dfs)
             except MemoryError:
                 logger.error(
                     f"Unable to compute Median for {self.col.name} due to memory constraints."
@@ -79,7 +79,7 @@ class FirstQuartile(StaticMetric):
                 return None
             # check if nan
             first_quartile = df[self.col.name].quantile(0.25, interpolation="midpoint")
-            return None if pd.isnull(first_quartile) else first_quartile
+            return None if isnull(first_quartile) else first_quartile
         logger.debug(
             f"Don't know how to process type {self.col.type} when computing First Quartile"
         )

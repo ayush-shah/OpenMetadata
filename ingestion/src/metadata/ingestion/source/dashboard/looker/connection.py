@@ -15,7 +15,7 @@ Source connection handler
 import os
 from typing import Optional
 
-import looker_sdk
+from looker_sdk import init40
 from looker_sdk.sdk.api40.methods import Looker40SDK
 
 from metadata.generated.schema.entity.automations.workflow import (
@@ -41,7 +41,7 @@ def get_connection(connection: LookerConnection) -> Looker40SDK:
     if not os.environ.get("LOOKERSDK_BASE_URL"):
         os.environ["LOOKERSDK_BASE_URL"] = connection.hostPort
 
-    return looker_sdk.init40()
+    return init40()
 
 
 def test_connection(

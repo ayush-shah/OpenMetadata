@@ -14,7 +14,6 @@ Source connection handler
 """
 from typing import Optional
 
-import pyspark
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
 
@@ -36,7 +35,7 @@ def get_connection(connection: DeltaLakeConnection) -> SparkSession:
     """
 
     builder = (
-        pyspark.sql.SparkSession.builder.appName(connection.appName or "OpenMetadata")
+        SparkSession.builder.appName(connection.appName or "OpenMetadata")
         .enableHiveSupport()
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(

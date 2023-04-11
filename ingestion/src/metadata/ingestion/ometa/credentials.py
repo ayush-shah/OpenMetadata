@@ -16,7 +16,7 @@ for the OpenMetadata Python API
 import os
 from typing import Tuple
 
-import dateutil.parser
+from dateutil.parser import parse
 
 from metadata.utils.logger import ometa_logger
 
@@ -72,7 +72,7 @@ class DATE(str):
                 f"Unexpected date structure. expected " f'"YYYY-MM-DD" got {value}'
             )
         try:
-            dateutil.parser.parse(value)
+            parse(value)
         except Exception as exc:
             msg = f"{value} is not a valid date string: {exc}"
             raise ValueError(msg)

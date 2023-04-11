@@ -50,8 +50,8 @@ class MetadataCommands(Enum):
 
 OM_IMPORTS_MIGRATION = """
     Update DAG files generated after creating workflow in 0.11 and before.
-    In 0.12 the airflow managed API package name changed from `openmetadata` to 
-    `openmetadata_managed_apis` hence breaking existing DAGs. 
+    In 0.12 the airflow managed API package name changed from `openmetadata` to
+    `openmetadata_managed_apis` hence breaking existing DAGs.
     The `dag_generated_config` folder also changed location in Docker.
     This small CLI utility allows you to update both elements.
     """

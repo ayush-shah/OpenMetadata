@@ -33,7 +33,7 @@ class CustomThreadPoolExecutor(ThreadPoolExecutor):
             if cancel_futures:
                 # Drain all work items from the queue, and then cancel their
                 # associated futures.
-                while True:
+                while 1:
                     try:
                         work_item = self._work_queue.get_nowait()
                     except queue.Empty:

@@ -13,9 +13,9 @@
 Common Broker for fetching metadata
 """
 
-import concurrent.futures
 import traceback
 from abc import ABC
+from concurrent.futures import as_completed
 from typing import Iterable, Optional
 
 import confluent_kafka
@@ -153,9 +153,7 @@ class CommonBrokerSource(MessagingServiceSource, ABC):
         Stateful operation that adds new properties to a given Topic
         """
         try:
-            for resource_value in concurrent.futures.as_completed(
-                iter(topic_config_resource.values())
-            ):
+            for resource_value in as_completed(iter(topic_config_resource.values())):
                 config_response = resource_value.result(timeout=10)
                 if "max.message.bytes" in config_response:
                     topic.maximumMessageSize = config_response.get(

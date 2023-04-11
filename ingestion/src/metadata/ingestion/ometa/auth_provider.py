@@ -11,14 +11,14 @@
 """
 Interface definition for an Auth provider
 """
-import http.client
 import json
-import os.path
 import sys
 import traceback
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from http.client import HTTPSConnection
+from os.path import isfile
 from typing import Tuple
 
 import requests
@@ -149,15 +149,14 @@ class GoogleAuthenticationProvider(AuthenticationProvider):
         return cls(config)
 
     def auth_token(self) -> None:
-        import google.auth
-        import google.auth.transport.requests
-        from google.oauth2 import service_account
+        from google.auth.transport.requests import Request
+        from google.oauth2.service_account import IDTokenCredentials
 
-        credentials = service_account.IDTokenCredentials.from_service_account_file(
+        credentials = IDTokenCredentials.from_service_account_file(
             self.security_config.secretKey.get_secret_value(),
             target_audience=self.security_config.audience,
         )
-        request = google.auth.transport.requests.Request()
+        request = Request()
         credentials.refresh(request)
         self.generated_auth_token = credentials.token
         self.expiry = credentials.expiry
@@ -298,7 +297,7 @@ class Auth0AuthenticationProvider(AuthenticationProvider):
         return cls(config)
 
     def auth_token(self) -> None:
-        conn = http.client.HTTPSConnection(self.security_config.domain)
+        conn = HTTPSConnection(self.security_config.domain)
         payload = (
             f"grant_type=client_credentials&client_id={self.security_config.clientId}"
             f"&client_secret={self.security_config.secretKey.get_secret_value()}"
@@ -440,7 +439,7 @@ class OpenMetadataAuthenticationProvider(AuthenticationProvider):
 
     def auth_token(self) -> None:
         if not self.jwt_token:
-            if os.path.isfile(self.security_config.jwtToken.get_secret_value()):
+            if isfile(self.security_config.jwtToken.get_secret_value()):
                 with open(
                     self.security_config.jwtToken.get_secret_value(),
                     "r",

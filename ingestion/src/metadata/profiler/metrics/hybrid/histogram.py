@@ -178,10 +178,10 @@ class Histogram(HybridMetric):
             Dict
         """
         # pylint: disable=import-outside-toplevel
-        import numpy as np
-        import pandas as pd
+        from numpy import arange, inf, zeros
+        from pandas import DataFrame, cut
 
-        dfs = cast(List[pd.DataFrame], dfs)  # satisfy mypy
+        dfs = cast(List[DataFrame], dfs)  # satisfy mypy
 
         if not is_quantifiable(self.col.type):
             return None
@@ -199,7 +199,7 @@ class Histogram(HybridMetric):
         if num_bins == 0:
             return None
 
-        bins = list(np.arange(num_bins) * bind_width + res_min)
+        bins = list(arange(num_bins) * bind_width + res_min)
         bins_label = [
             self._format_bin_labels(bins[i], bins[i + 1])
             if i < len(bins) - 1
@@ -207,18 +207,18 @@ class Histogram(HybridMetric):
             for i in range(len(bins))
         ]
 
-        bins.append(np.inf)  # add the last bin
+        bins.append(inf)  # add the last bin
 
-        frequencies = np.zeros(num_bins)
+        frequencies = zeros(num_bins)
 
         for df in dfs:
             if not frequencies.any():
                 frequencies = (
-                    pd.cut(df[self.col.name], bins, right=False).value_counts().values
+                    cut(df[self.col.name], bins, right=False).value_counts().values
                 )  # right boundary is exclusive
                 continue
             frequencies += (
-                pd.cut(df[self.col.name], bins, right=False).value_counts().values
+                cut(df[self.col.name], bins, right=False).value_counts().values
             )  # right boundary is exclusive
 
         if frequencies.size > 0:

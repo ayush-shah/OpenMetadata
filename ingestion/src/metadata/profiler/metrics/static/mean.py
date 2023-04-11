@@ -87,10 +87,10 @@ class Mean(StaticMetric):
     # pylint: disable=import-outside-toplevel
     def df_fn(self, dfs=None):
         """dataframe function"""
-        import pandas as pd
         from numpy import average, vectorize
+        from pandas import DataFrame, isnull
 
-        dfs = cast(List[pd.DataFrame], dfs)
+        dfs = cast(List[DataFrame], dfs)
 
         means = []
         weights = []
@@ -98,7 +98,7 @@ class Mean(StaticMetric):
         if is_quantifiable(self.col.type):
             for df in dfs:
                 mean = df[self.col.name].mean()
-                if not pd.isnull(mean):
+                if not isnull(mean):
                     means.append(mean)
                     weights.append(df[self.col.name].count())
 
@@ -108,7 +108,7 @@ class Mean(StaticMetric):
                 mean = length_vectorize_func(
                     df[self.col.name].dropna().astype(str)
                 ).mean()
-                if not pd.isnull(mean):
+                if not isnull(mean):
                     means.append(mean)
                     weights.append(df[self.col.name].dropna().count())
 

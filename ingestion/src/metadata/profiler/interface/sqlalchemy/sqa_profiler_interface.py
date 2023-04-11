@@ -14,10 +14,10 @@ Interfaces with database for all database engine
 supporting sqlalchemy abstraction layer
 """
 
-import concurrent.futures
 import threading
 import traceback
 from collections import defaultdict
+from concurrent.futures import TimeoutError
 from datetime import datetime, timezone
 from typing import Dict, List
 
@@ -466,11 +466,11 @@ class SQAProfilerInterface(ProfilerProtocol, SQAInterfaceMixin):
                                 **profile,
                             }
                         )
-                except concurrent.futures.TimeoutError as exc:
+                except TimeoutError as exc:
                     pool.shutdown39(wait=True, cancel_futures=True)
                     logger.debug(traceback.format_exc())
                     logger.error(f"Operation was cancelled due to TimeoutError - {exc}")
-                    raise concurrent.futures.TimeoutError
+                    raise TimeoutError
 
         return profile_results
 

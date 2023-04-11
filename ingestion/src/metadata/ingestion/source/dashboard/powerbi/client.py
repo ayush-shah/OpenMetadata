@@ -286,7 +286,7 @@ class PowerBiApiClient:
 
         max_poll = timeout // min_sleep_time
         poll = 1
-        while True:
+        while 1:
             logger.info(f"Starting poll - {poll}/{max_poll}")
             response = self.fetch_workspace_scan_status(scan_id=scan_id)
             status = response.status

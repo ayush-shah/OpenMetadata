@@ -345,7 +345,7 @@ def _get_column_info(  # pylint: disable=too-many-locals,too-many-arguments, unu
     args, kwargs = _get_args_and_kwargs(charlen, attype, format_type)
     if attype.startswith("interval"):
         attype = "interval"
-    while True:
+    while 1:
         # looping here to suit nested domains
         if attype in ischema_names:
             coltype = ischema_names[attype]

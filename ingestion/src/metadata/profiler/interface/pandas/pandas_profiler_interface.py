@@ -29,10 +29,7 @@ from metadata.generated.schema.entity.services.connections.database.datalakeConn
 )
 from metadata.ingestion.api.processor import ProfilerProcessorStatus
 from metadata.ingestion.source.connections import get_connection
-from metadata.ingestion.source.database.datalake.metadata import (
-    DATALAKE_DATA_TYPES,
-    DatalakeSource,
-)
+from metadata.ingestion.source.database.datalake.metadata import DatalakeSource
 from metadata.mixins.pandas.pandas_mixin import PandasInterfaceMixin
 from metadata.profiler.interface.profiler_protocol import ProfilerProtocol
 from metadata.profiler.metrics.core import MetricTypes
@@ -115,11 +112,11 @@ class PandasProfilerInterface(ProfilerProtocol, PandasInterfaceMixin):
         Returns:
             dictionnary of results
         """
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        from pandas import notnull  # pylint: disable=import-outside-toplevel
 
         try:
             row_dict = {}
-            df_list = [df.where(pd.notnull(df), None) for df in self.dfs]
+            df_list = [df.where(notnull(df), None) for df in self.dfs]
             for metric in metrics:
                 row_dict[metric.name()] = metric().df_fn(df_list)
             return row_dict
@@ -147,15 +144,13 @@ class PandasProfilerInterface(ProfilerProtocol, PandasInterfaceMixin):
         Returns:
             dictionnary of results
         """
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        from pandas import isnull  # pylint: disable=import-outside-toplevel
 
         try:
             row_dict = {}
             for metric in metrics:
                 metric_resp = metric(column).df_fn(self.dfs)
-                row_dict[metric.name()] = (
-                    None if pd.isnull(metric_resp) else metric_resp
-                )
+                row_dict[metric.name()] = None if isnull(metric_resp) else metric_resp
             return row_dict
         except Exception as exc:
             logger.debug(

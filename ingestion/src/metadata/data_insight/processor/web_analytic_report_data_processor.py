@@ -100,7 +100,7 @@ class WebAnalyticEntityViewReportDataProcessor(DataProcessor):
         refined_data = {}
         EntityObj = namedtuple("EntityObj", ["entity_type", "fqn"])
 
-        while True:
+        while 1:
             event = yield refined_data
             split_url = [url for url in event.eventData.url.__root__.split("/") if url]  # type: ignore
 
@@ -290,7 +290,7 @@ class WebAnalyticUserActivityReportDataProcessor(DataProcessor):
         user_details = {}
         refined_data = {}
 
-        while True:
+        while 1:
             event = yield refined_data
 
             user_id = str(event.eventData.userId.__root__)  # type: ignore

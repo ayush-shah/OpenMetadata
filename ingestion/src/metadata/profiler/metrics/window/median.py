@@ -60,16 +60,20 @@ class Median(StaticMetric):
 
     def df_fn(self, dfs=None):
         """Dataframe function"""
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        from pandas import (  # pylint: disable=import-outside-toplevel
+            DataFrame,
+            concat,
+            isnull,
+        )
 
-        dfs = cast(List[pd.DataFrame], dfs)
+        dfs = cast(List[DataFrame], dfs)
 
         if is_quantifiable(self.col.type):
             # we can't compute the median unless we have
             # the entire set. Median of Medians could be used
             # though it would required set to be sorted before hand
             try:
-                df = pd.concat(dfs)
+                df = concat(dfs)
             except MemoryError:
                 logger.error(
                     f"Unable to compute Median for {self.col.name} due to memory constraints."
@@ -77,7 +81,7 @@ class Median(StaticMetric):
                 )
                 return None
             median = df[self.col.name].median()
-            return None if pd.isnull(median) else median
+            return None if isnull(median) else median
         logger.debug(
             f"Don't know how to process type {self.col.type} when computing Median"
         )

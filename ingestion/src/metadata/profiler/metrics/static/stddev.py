@@ -92,11 +92,11 @@ class StdDev(StaticMetric):
 
     def df_fn(self, dfs=None):
         """pandas function"""
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        from pandas import concat  # pylint: disable=import-outside-toplevel
 
         if is_quantifiable(self.col.type):
             try:
-                return pd.concat(df[self.col.name] for df in dfs).std()
+                return concat(df[self.col.name] for df in dfs).std()
             except MemoryError:
                 logger.error(
                     f"Unable to compute distinctCount for {self.col.name} due to memory constraints."

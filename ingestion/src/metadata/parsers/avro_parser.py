@@ -16,8 +16,7 @@ Utils module to parse the avro schema
 import traceback
 from typing import List, Optional, Tuple, Union
 
-import avro.schema as avroschema
-from avro.schema import ArraySchema, RecordSchema, Schema, UnionSchema
+from avro.schema import ArraySchema, RecordSchema, Schema, UnionSchema, parse
 from pydantic.main import ModelMetaclass
 
 from metadata.generated.schema.entity.data.table import Column
@@ -201,7 +200,7 @@ def parse_avro_schema(
     Method to parse the avro schema
     """
     try:
-        parsed_schema = avroschema.parse(schema)
+        parsed_schema = parse(schema)
         models = [
             cls(
                 name=parsed_schema.name,

@@ -17,8 +17,7 @@ import traceback
 from typing import Any
 
 import gcsfs
-import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 from pyarrow.parquet import ParquetFile
 
 from metadata.ingestion.source.database.datalake.utils import (
@@ -45,7 +44,7 @@ def read_csv_from_gcs(  # pylint: disable=inconsistent-return-statements
 
     try:
         chunk_list = []
-        with pd.read_csv(
+        with read_csv(
             f"gs://{bucket_name}/{key}", sep=",", chunksize=CHUNKSIZE
         ) as reader:
             for chunks in reader:
@@ -64,7 +63,7 @@ def read_tsv_from_gcs(  # pylint: disable=inconsistent-return-statements
     """
     try:
         chunk_list = []
-        with pd.read_csv(
+        with read_csv(
             f"gs://{bucket_name}/{key}", sep="\t", chunksize=CHUNKSIZE
         ) as reader:
             for chunks in reader:

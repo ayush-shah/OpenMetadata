@@ -13,12 +13,12 @@
 Module to define overriden dialect methods
 """
 
-import sqlalchemy.types as sqltypes
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import util as sa_util
 from sqlalchemy.engine import reflection
 from sqlalchemy.sql import text
-from sqlalchemy.types import FLOAT
+from sqlalchemy.sql.sqltypes import NULLTYPE
+from sqlalchemy.types import BINARY, FLOAT, Numeric, String
 
 from metadata.ingestion.source.database.snowflake.queries import (
     SNOWFLAKE_GET_COMMENTS,
@@ -179,15 +179,15 @@ def get_schema_columns(self, connection, schema, **kw):
             sa_util.warn(
                 f"Did not recognize type '{coltype}' of column '{column_name}'"
             )
-            col_type = sqltypes.NULLTYPE
+            col_type = NULLTYPE
         else:
             if issubclass(col_type, FLOAT):
                 col_type_kw["precision"] = numeric_precision
                 col_type_kw["decimal_return_scale"] = numeric_scale
-            elif issubclass(col_type, sqltypes.Numeric):
+            elif issubclass(col_type, Numeric):
                 col_type_kw["precision"] = numeric_precision
                 col_type_kw["scale"] = numeric_scale
-            elif issubclass(col_type, (sqltypes.String, sqltypes.BINARY)):
+            elif issubclass(col_type, (String, BINARY)):
                 col_type_kw["length"] = character_maximum_length
 
         type_instance = col_type(**col_type_kw)

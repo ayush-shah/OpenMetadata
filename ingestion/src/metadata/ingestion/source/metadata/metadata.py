@@ -200,7 +200,7 @@ class MetadataSource(Source[Entity]):
         """
         try:
             after = None
-            while True:
+            while 1:
                 entities_list = self.metadata.list_entities(
                     entity=entity_class,
                     fields=fields,

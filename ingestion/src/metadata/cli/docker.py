@@ -105,7 +105,7 @@ def start_docker(docker, start_time, file_path, ingest_sample_data: bool):
         )
         ometa_logger().disabled = True
         ometa_client = OpenMetadata(metadata_config)
-        while True:
+        while 1:
             try:
                 resp = ometa_client.get_by_name(
                     entity=Table, fqn="sample_data.ecommerce_db.shopify.dim_customer"
@@ -125,7 +125,7 @@ def start_docker(docker, start_time, file_path, ingest_sample_data: bool):
         bold=False,
         message="Waiting for server to be up at http://localhost:8585 ",
     )
-    while True:
+    while 1:
         try:
             res = requests.get("http://localhost:8585", timeout=REQUESTS_TIMEOUT)
             if res.status_code == 200:
@@ -334,7 +334,7 @@ def wait_for_containers(docker) -> None:
     """
     Wait until docker containers are running
     """
-    while True:
+    while 1:
         running = (
             docker.container.inspect("openmetadata_server").state.running
             and docker.container.inspect("openmetadata_ingestion").state.running
@@ -363,7 +363,7 @@ def run_sample_data() -> None:
     )
     client = REST(client_config)
     timeout = time.time() + 60 * 5  # Timeout of 5 minutes
-    while True:
+    while 1:
         try:
             resp = client.get("/dags")
             if resp:

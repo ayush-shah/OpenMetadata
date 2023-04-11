@@ -16,9 +16,8 @@ Utils module to convert different file types from s3 buckets into a dataframe
 import traceback
 from typing import Any
 
-import pandas as pd
-import pyarrow.parquet as pq
 import s3fs
+from pyarrow.parquet import ParquetDataset
 
 from metadata.ingestion.source.database.datalake.utils import (
     read_from_avro,
@@ -44,10 +43,12 @@ def read_csv_from_s3(
     """
     Read the csv file from the s3 bucket and return a dataframe
     """
+    from pandas import read_csv  # pylint: disable=import-outside-toplevel
+
     try:
         stream = client.get_object(Bucket=bucket_name, Key=key)["Body"]
         chunk_list = []
-        with pd.read_csv(stream, sep=sep, chunksize=CHUNKSIZE) as reader:
+        with read_csv(stream, sep=sep, chunksize=CHUNKSIZE) as reader:
             for chunks in reader:
                 chunk_list.append(chunks)
         return chunk_list
@@ -104,7 +105,7 @@ def read_parquet_from_s3(client: Any, key: str, bucket_name: str):
             client_kwargs=client_kwargs,
         )
     bucket_uri = f"s3://{bucket_name}/{key}"
-    dataset = pq.ParquetDataset(bucket_uri, filesystem=s3_fs)
+    dataset = ParquetDataset(bucket_uri, filesystem=s3_fs)
     return [dataset.read_pandas().to_pandas()]
 
 

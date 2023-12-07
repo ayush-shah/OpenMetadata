@@ -21,5 +21,5 @@
   <img alt="Data Discovery" src="https://github.com/ayush-shah/OpenMetadata/assets/40225091/3ba23b12-b475-4914-9f36-422d66c0c443" width="75%">
 </div>
 <div align='center'>
-    <img alt="Data Governance" src="https://github.com/ayush-shah/OpenMetadata/assets/40225091/eb652b33-ba3b-4c7b-b035-6a6dab804a8c" width="75%">
+    <img alt="Data Governance" src="https://github.com/ayush-shah/OpenMetadata/assets/40225091/f07e690f-491b-4008-83f7-776ec485bba6" width="75%">
 </div>

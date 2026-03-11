@@ -25,7 +25,7 @@ set -e
 declare -A python
 python["name"]="Python"
 python["version_command"]="python --version 2>&1 | awk '{print \$2}'"
-python["required_version"]="3.9 3.10 3.11"
+python["required_version"]="3.10 3.11"
 
 declare -A docker
 docker["name"]="Docker"
@@ -61,6 +61,11 @@ declare -A antlr
 antlr["name"]="ANTLR"
 antlr["version_command"]="antlr4 | head -n1 | awk 'NF>1{print \$NF}'"
 antlr["required_version"]="4.9"
+
+declare -A dockercompose
+dockercompose["name"]="Docker Compose"
+dockercompose["version_command"]="docker compose version | awk '{print \$NF}' | sed 's/^v//'"
+dockercompose["required_version"]="5.0 5.1 5.2"
 
 
 code=0
@@ -99,7 +104,7 @@ check_version() {
 }
 
 declare -n dependency
-for dependency in python docker java maven jq node yarn antlr; do
+for dependency in python docker java maven jq node yarn antlr dockercompose; do
     command=$(echo "${dependency["version_command"]}" | awk '{print $1}')
     if [[ $(check_command_existence "$command") -ne 0 ]]; then
         continue
@@ -107,7 +112,7 @@ for dependency in python docker java maven jq node yarn antlr; do
     tool_name=${dependency["name"]}
     version=$(eval ${dependency["version_command"]})
     required_version=${dependency["required_version"]}
-    check_version $tool_name "$version" "$required_version"
+    check_version "$tool_name" "$version" "$required_version"
 done
 if [[ $code -eq 0 ]]; then
     echo "✓ All prerequisites are met."

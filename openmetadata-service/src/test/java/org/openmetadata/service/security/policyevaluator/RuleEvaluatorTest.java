@@ -483,6 +483,18 @@ class RuleEvaluatorTest {
   }
 
   @Test
+  void test_matchAnyCertification_withNullEntity() {
+    ResourceContext<Table> resourceContextWithoutEntity = new ResourceContext<>(Entity.TABLE);
+    RuleEvaluator ruleEvaluator =
+        new RuleEvaluator(null, subjectContext, resourceContextWithoutEntity);
+    EvaluationContext localEvaluationContext = new StandardEvaluationContext(ruleEvaluator);
+
+    assertFalse(
+        parseExpression("matchAnyCertification('Certification.Gold')")
+            .getValue(localEvaluationContext, Boolean.class));
+  }
+
+  @Test
   void test_matchTeam() {
     // Create a team hierarchy
     Team team1 = createTeam("team1", null);

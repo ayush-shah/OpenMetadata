@@ -265,7 +265,8 @@ public class RuleEvaluator {
       }
       return false;
     }
-    if (resourceContext == null) {
+    if (resourceContext == null || resourceContext.getEntity() == null) {
+      LOG.debug("matchAnyCertification {} resourceEntity is null.", Arrays.toString(tagFQNs));
       return false;
     }
 

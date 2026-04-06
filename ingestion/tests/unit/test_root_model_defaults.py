@@ -10,8 +10,8 @@
 #  limitations under the License.
 """Regression coverage for RootModel defaults in generated schema models."""
 
-from importlib import import_module
 import json
+from importlib import import_module
 from pathlib import Path
 
 import pytest
@@ -20,19 +20,18 @@ from pydantic import ValidationError
 from metadata.generated.schema.entity.domains.dataProduct import DataProduct
 from metadata.generated.schema.type.entityReferenceList import EntityReferenceList
 
-
 DATA_PRODUCT_PAYLOAD = {
-    'id': '11111111-1111-1111-1111-111111111111',
-    'name': 'data_product',
-    'description': 'Data product used to validate RootModel defaults',
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "data_product",
+    "description": "Data product used to validate RootModel defaults",
 }
 
 INVALID_ENTITY_REFERENCE_LIST_VALUES = [
-    'bad',
+    "bad",
     1,
-    {'root': 'bad'},
+    {"root": "bad"},
     [1],
-    [{'id': 'bad'}],
+    [{"id": "bad"}],
 ]
 
 
@@ -41,15 +40,15 @@ def _repo_root() -> Path:
 
 
 def _schema_root() -> Path:
-    return _repo_root() / 'openmetadata-spec/src/main/resources/json/schema'
+    return _repo_root() / "openmetadata-spec/src/main/resources/json/schema"
 
 
 def _generated_schema_root() -> Path:
-    local_generated_root = _repo_root() / 'ingestion/src/metadata/generated/schema'
+    local_generated_root = _repo_root() / "ingestion/src/metadata/generated/schema"
     if local_generated_root.exists():
         return local_generated_root
 
-    generated_schema = import_module('metadata.generated.schema')
+    generated_schema = import_module("metadata.generated.schema")
 
     return Path(generated_schema.__file__).resolve().parent
 
@@ -59,9 +58,9 @@ def _root_model_default_offenders() -> list[tuple[str, str, str]]:
     generated_schema_root = _generated_schema_root()
     offenders: list[tuple[str, str, str]] = []
 
-    for schema_file in schema_root.rglob('*.json'):
-        schema = json.loads(schema_file.read_text())
-        properties = schema.get('properties', {})
+    for schema_file in schema_root.rglob("*.json"):
+        schema = json.loads(schema_file.read_text(encoding="utf-8"))
+        properties = schema.get("properties", {})
 
         if not isinstance(properties, dict):
             continue
@@ -70,11 +69,11 @@ def _root_model_default_offenders() -> list[tuple[str, str, str]]:
             if not isinstance(property_definition, dict):
                 continue
 
-            if property_definition.get('default') != []:
+            if property_definition.get("default") != []:
                 continue
 
-            ref = property_definition.get('$ref')
-            if not isinstance(ref, str) or not ref.endswith('.json'):
+            ref = property_definition.get("$ref")
+            if not isinstance(ref, str) or not ref.endswith(".json"):
                 continue
 
             referenced_schema = (schema_file.parent / ref).resolve()
@@ -85,13 +84,13 @@ def _root_model_default_offenders() -> list[tuple[str, str, str]]:
             except ValueError:
                 continue
 
-            generated_model = generated_schema_root / referenced_schema_relative.with_suffix(
-                '.py'
+            generated_model = (
+                generated_schema_root / referenced_schema_relative.with_suffix(".py")
             )
             if not generated_model.exists():
                 continue
 
-            if 'RootModel[' not in generated_model.read_text():
+            if "RootModel[" not in generated_model.read_text(encoding="utf-8"):
                 continue
 
             offenders.append(
@@ -112,9 +111,7 @@ def _serialize_without_runtime_error(
         dumped = data_product.model_dump()
         dumped_json = json.loads(data_product.model_dump_json())
     except (AttributeError, TypeError) as exc:
-        pytest.fail(
-            f'Serialization raised unexpected {type(exc).__name__}: {exc}'
-        )
+        pytest.fail(f"Serialization raised unexpected {type(exc).__name__}: {exc}")
 
     return dumped, dumped_json
 
@@ -127,18 +124,18 @@ def test_omitted_root_model_fields_default_to_none() -> None:
 
     dumped, dumped_json = _serialize_without_runtime_error(data_product)
 
-    assert dumped.get('consumesFrom') is None
-    assert dumped.get('providesTo') is None
-    assert 'consumesFrom' not in dumped_json
-    assert 'providesTo' not in dumped_json
+    assert dumped.get("consumesFrom") is None
+    assert dumped.get("providesTo") is None
+    assert "consumesFrom" not in dumped_json
+    assert "providesTo" not in dumped_json
 
 
 def test_explicit_none_root_model_fields_serialize_without_runtime_error() -> None:
     data_product = DataProduct.model_validate(
         {
             **DATA_PRODUCT_PAYLOAD,
-            'consumesFrom': None,
-            'providesTo': None,
+            "consumesFrom": None,
+            "providesTo": None,
         }
     )
 
@@ -147,18 +144,18 @@ def test_explicit_none_root_model_fields_serialize_without_runtime_error() -> No
 
     dumped, dumped_json = _serialize_without_runtime_error(data_product)
 
-    assert dumped.get('consumesFrom') is None
-    assert dumped.get('providesTo') is None
-    assert 'consumesFrom' not in dumped_json
-    assert 'providesTo' not in dumped_json
+    assert dumped.get("consumesFrom") is None
+    assert dumped.get("providesTo") is None
+    assert "consumesFrom" not in dumped_json
+    assert "providesTo" not in dumped_json
 
 
 def test_explicit_empty_lists_coerce_to_entity_reference_list() -> None:
     data_product = DataProduct.model_validate(
         {
             **DATA_PRODUCT_PAYLOAD,
-            'consumesFrom': [],
-            'providesTo': [],
+            "consumesFrom": [],
+            "providesTo": [],
         }
     )
 
@@ -167,13 +164,13 @@ def test_explicit_empty_lists_coerce_to_entity_reference_list() -> None:
 
     dumped, dumped_json = _serialize_without_runtime_error(data_product)
 
-    assert dumped['consumesFrom'] == []
-    assert dumped['providesTo'] == []
-    assert dumped_json['consumesFrom'] == []
-    assert dumped_json['providesTo'] == []
+    assert dumped["consumesFrom"] == []
+    assert dumped["providesTo"] == []
+    assert dumped_json["consumesFrom"] == []
+    assert dumped_json["providesTo"] == []
 
 
-@pytest.mark.parametrize('invalid_value', INVALID_ENTITY_REFERENCE_LIST_VALUES)
+@pytest.mark.parametrize("invalid_value", INVALID_ENTITY_REFERENCE_LIST_VALUES)
 def test_invalid_root_model_values_fail_with_validation_error(
     invalid_value: object,
 ) -> None:
@@ -181,7 +178,7 @@ def test_invalid_root_model_values_fail_with_validation_error(
         DataProduct.model_validate(
             {
                 **DATA_PRODUCT_PAYLOAD,
-                'consumesFrom': invalid_value,
+                "consumesFrom": invalid_value,
             }
         )
 

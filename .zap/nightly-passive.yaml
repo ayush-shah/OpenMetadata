@@ -1,0 +1,93 @@
+env:
+  contexts:
+    - name: openmetadata
+      urls:
+        - http://localhost:8585
+      includePaths:
+        - http://localhost:8585/.*
+        - http://localhost:8585/api/.*
+      authentication:
+        method: manual
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 5
+      scanOnlyInScope: true
+
+  - type: spider
+    parameters:
+      context: openmetadata
+      url: http://localhost:8585
+      maxDuration: 2
+
+  - type: spiderAjax
+    parameters:
+      context: openmetadata
+      url: http://localhost:8585
+      maxDuration: 3
+      inScopeOnly: true
+
+  - type: requestor
+    requests:
+      - name: Get auth config
+        url: http://localhost:8585/api/v1/system/config/auth
+        method: GET
+        responseCode: 200
+      - name: Get login config
+        url: http://localhost:8585/api/v1/system/config/loginConfig
+        method: GET
+        responseCode: 200
+      - name: Get logged in user
+        url: http://localhost:8585/api/v1/users/loggedInUser
+        method: GET
+        responseCode: 200
+      - name: List users
+        url: http://localhost:8585/api/v1/users?limit=10
+        method: GET
+        responseCode: 200
+      - name: Get OpenAPI JSON
+        url: http://localhost:8585/swagger.json
+        method: GET
+        responseCode: 200
+
+  - type: openapi
+    parameters:
+      context: openmetadata
+      apiUrl: http://localhost:8585/swagger.yaml
+      targetUrl: http://localhost:8585
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 10
+
+  - type: report
+    parameters:
+      template: traditional-md
+      reportDir: reports
+      reportFile: zap-report.md
+      reportTitle: OpenMetadata ZAP Passive DAST Report (Markdown)
+      reportDescription: Passive authenticated DAST coverage for the local OpenMetadata CI stack.
+    sites:
+      - http://localhost:8585
+
+  - type: report
+    parameters:
+      template: risk-confidence-html
+      reportDir: reports
+      reportFile: zap-report.html
+      reportTitle: OpenMetadata ZAP Passive DAST Report
+      reportDescription: Passive authenticated DAST coverage for the local OpenMetadata CI stack.
+    sites:
+      - http://localhost:8585
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 0

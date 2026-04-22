@@ -1,0 +1,260 @@
+#  Copyright 2021 Collate
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#  http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+name: ZAP DAST
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to run the scan on"
+        required: true
+        type: string
+        default: "main"
+      database:
+        description: "Database backend to boot for the scan"
+        required: true
+        type: choice
+        default: "postgresql"
+        options:
+          - postgresql
+          - mysql
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zap-dast-${{ inputs.branch }}-${{ inputs.database }}
+  cancel-in-progress: true
+
+env:
+  ZAP_DOCKER_IMAGE: ghcr.io/zaproxy/zaproxy:2.17.0
+  ZAP_TARGET_URL: http://localhost:8585
+
+jobs:
+  zap-dast:
+    name: ZAP DAST (${{ inputs.database }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          swap-storage: true
+          docker-images: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup OpenMetadata Test Environment
+        uses: ./.github/actions/setup-openmetadata-test-environment
+        with:
+          python-version: "3.10"
+          args: "-d ${{ inputs.database }} -i false"
+
+      - name: Wait for OpenMetadata readiness
+        run: |
+          set -euo pipefail
+
+          wait_for_url() {
+            local name="$1"
+            local url="$2"
+            local attempts="${3:-60}"
+
+            for ((attempt=1; attempt<=attempts; attempt++)); do
+              if curl -fsS "$url" >/dev/null; then
+                echo "$name is ready: $url"
+                return 0
+              fi
+
+              echo "Waiting for $name ($attempt/$attempts): $url"
+              sleep 5
+            done
+
+            echo "::error::$name did not become available at $url"
+            cd ./docker/development
+            docker compose ps || true
+            exit 1
+          }
+
+          wait_for_url "health endpoint" "${ZAP_TARGET_URL}/health-check"
+          wait_for_url "swagger spec" "${ZAP_TARGET_URL}/swagger.yaml"
+
+      - name: Bootstrap ZAP authentication
+        run: |
+          set -euo pipefail
+
+          auth_response="$(
+            curl -fsS -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"email":"admin@open-metadata.org","password":"YWRtaW4="}' \
+              "${ZAP_TARGET_URL}/api/v1/auth/login"
+          )"
+
+          access_token="$(
+            python3 -c 'import json, sys; print(json.load(sys.stdin).get("accessToken", ""))' \
+              <<<"$auth_response"
+          )"
+
+          if [ -z "$access_token" ]; then
+            echo "::error::Authentication response did not contain accessToken."
+            exit 1
+          fi
+
+          echo "::add-mask::$access_token"
+
+          {
+            echo "ZAP_AUTH_HEADER=Authorization"
+            echo "ZAP_AUTH_HEADER_VALUE=Bearer $access_token"
+            echo "ZAP_AUTH_HEADER_SITE=localhost"
+            echo "ZAP_BEARER_TOKEN=$access_token"
+          } >> "$GITHUB_ENV"
+
+      - name: Prepare ZAP workdir
+        run: |
+          set -euo pipefail
+
+          zap_workdir="${RUNNER_TEMP}/zap"
+          rm -rf "$zap_workdir"
+          mkdir -p "$zap_workdir/reports"
+          cp .zap/nightly-passive.yaml "$zap_workdir/nightly-passive.yaml"
+          chmod -R 777 "$zap_workdir"
+
+          echo "ZAP_WORKDIR=$zap_workdir" >> "$GITHUB_ENV"
+
+      - name: Validate ZAP automation plan
+        run: |
+          set -euo pipefail
+
+          docker run --rm \
+            -e ZAP_AUTH_HEADER \
+            -e ZAP_AUTH_HEADER_VALUE \
+            -e ZAP_AUTH_HEADER_SITE \
+            -v "${ZAP_WORKDIR}:/zap/wrk:rw" \
+            "${ZAP_DOCKER_IMAGE}" \
+            zap.sh -cmd -autocheck /zap/wrk/nightly-passive.yaml
+
+      - name: Run ZAP DAST
+        id: zap-run
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          # The local OpenMetadata stack is started on the runner host, so the
+          # ZAP container needs host networking to reach http://localhost:8585.
+          docker run --rm \
+            --network host \
+            -e ZAP_AUTH_HEADER \
+            -e ZAP_AUTH_HEADER_VALUE \
+            -e ZAP_AUTH_HEADER_SITE \
+            -v "${ZAP_WORKDIR}:/zap/wrk:rw" \
+            "${ZAP_DOCKER_IMAGE}" \
+            zap.sh -cmd -config view.mode=protect -autorun /zap/wrk/nightly-passive.yaml
+
+      - name: Collect and verify reports
+        if: always()
+        run: |
+          set -euo pipefail
+
+          mkdir -p .zap/out
+          zap_workdir="${ZAP_WORKDIR:-${RUNNER_TEMP}/zap}"
+          zap_bearer_token="${ZAP_BEARER_TOKEN:-}"
+
+          markdown_source="${zap_workdir}/reports/zap-report.md"
+          html_source="${zap_workdir}/reports/zap-report.html"
+          markdown_output=".zap/out/zap-dast-${{ inputs.database }}.md"
+          html_output=".zap/out/zap-dast-${{ inputs.database }}.html"
+
+          if [ ! -f "$markdown_source" ]; then
+            echo "::error::Markdown report was not generated at $markdown_source"
+            exit 1
+          fi
+
+          if [ ! -f "$html_source" ]; then
+            echo "::error::HTML report was not generated at $html_source"
+            exit 1
+          fi
+
+          cp "$markdown_source" "$markdown_output"
+          cp "$html_source" "$html_output"
+
+          if [ -n "$zap_bearer_token" ] && grep -qF "$zap_bearer_token" "$markdown_output" "$html_output"; then
+            echo "::error::Bearer token leaked into a ZAP report artifact."
+            exit 1
+          fi
+
+      - name: Publish ZAP summary
+        if: always()
+        run: |
+          {
+            echo "## ZAP DAST"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Branch | \`${{ inputs.branch }}\` |"
+            echo "| Database | \`${{ inputs.database }}\` |"
+            echo "| Target | \`${ZAP_TARGET_URL}\` |"
+            echo "| Image | \`${ZAP_DOCKER_IMAGE}\` |"
+            echo "| Plan | \`.zap/nightly-passive.yaml\` |"
+            echo "| Markdown artifact | \`zap-dast-${{ inputs.database }}-markdown\` |"
+            echo "| HTML artifact | \`zap-dast-${{ inputs.database }}-html\` |"
+            echo
+
+            if [ -f ".zap/out/zap-dast-${{ inputs.database }}.md" ]; then
+              echo "<details><summary>Markdown summary</summary>"
+              echo
+              awk '
+                /^## Alert Detail/ || /^## Alert Details/ { exit }
+                { print }
+              ' ".zap/out/zap-dast-${{ inputs.database }}.md"
+              echo
+              echo "</details>"
+            else
+              echo "> No Markdown report was generated."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Markdown report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-dast-${{ inputs.database }}-markdown
+          path: .zap/out/zap-dast-${{ inputs.database }}.md
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-dast-${{ inputs.database }}-html
+          path: .zap/out/zap-dast-${{ inputs.database }}.html
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Clean Up
+        if: always()
+        run: |
+          cd ./docker/development
+          docker compose down --remove-orphans || true
+          sudo rm -rf ${PWD}/docker-volume
+
+      - name: Force failure on High findings
+        if: always() && steps.zap-run.outcome == 'failure'
+        run: exit 1
